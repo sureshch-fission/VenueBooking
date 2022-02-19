@@ -1,0 +1,23 @@
+{
+  "name": "venuebooking",
+  "version": "1.0.0",
+  "description": "venue booking application",
+  "main": "index.js",
+  "scripts": {
+    "start": "npm index.js",
+    "dev": "env-cmd ./config/dev.env nodemon index"
+  },
+  "author": "suresh chekka",
+  "license": "ISC",
+  "devDependencies": {
+    "env-cmd": "^8.0.2",
+    "nodemon": "^2.0.15"
+  },
+  "dependencies": {
+    "bcrypt": "^5.0.1",
+    "express": "^4.17.2",
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^6.2.1",
+    "validator": "^13.7.0"
+  }
+}
