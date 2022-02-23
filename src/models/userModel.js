@@ -52,6 +52,7 @@ userSchema.methods.toPublicprofile = function () {
     const userObject = user.toObject();
 
     delete userObject.bookedSlot;
+    delete userObject.tokens;
 
 
     return userObject

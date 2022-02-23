@@ -1,6 +1,5 @@
 const express = require('express');
 const User = require('../models/userModel');
-const auth = require('../middleware/auth')
 
 
 
@@ -15,14 +14,14 @@ router.post('/users', async (req, res) => {
     const user = new User(req.body);
     try {
 
-        const token = await user.getAuthToken()
+
         await user.save();
 
-        res.send({ user, token })
+        res.send({ user: user.toPublicprofile() })
 
     } catch (error) {
 
-        res.status(400).send(error)
+        res.status(400).send(error.message)
 
 
     }
@@ -32,7 +31,7 @@ router.post('/users', async (req, res) => {
 //coustmer Login
 
 
-router.post('/users/login', auth, async (req, res) => {
+router.post('/users/login', async (req, res) => {
 
     try {
 

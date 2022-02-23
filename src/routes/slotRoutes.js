@@ -1,37 +1,102 @@
 const express = require('express')
 const router = express.Router();
-const Venu = require('../models/venueModel');
 const auth = require('../middleware/auth');
-const Slots = require('../models/venueModel');
-const User = require('../models/userModel');
+const venueBookingModel = require('../models/slotbookingModel')
+const ownerModel = require('../models/ownervenueModel')
+
+const moment = require('moment')
 
 
+//Slot Booking
 
-//creating Slots
+router.post('/:id/slotbooking', auth, async (req, res) => {
 
-router.post('/slots/createslot', async (req, res) => {
 
-    const slot = new Venu(req.body)
+    const { bookingDate, name, reqSlot } = req.body;
 
     try {
-        await slot.save();
-        res.send(slot)
-    } catch (error) {
-        res.status(400).send(error)
-    }
 
+
+        const bookings = await venueBookingModel.find({ bookingDate });
+
+        const venue = await ownerModel.findById(req.params.id);
+
+        const venueIdValidating = venue._id.valueOf() === req.params.id
+
+
+        const isBooked = bookings.some((booking) => booking.slot === reqSlot);
+        if (!isBooked && venueIdValidating) {
+            const newBooking = new venueBookingModel({
+                bookingDate,
+                name,
+                slot: reqSlot,
+                venuId: venue._id.valueOf()
+            });
+
+            //saving to database
+            await newBooking.save();
+
+
+            res.status(201).send(newBooking);
+        } else {
+            res.status(406).send(`${reqSlot} is already booked `);
+        }
+    } catch (err) {
+
+        res.status(500).send("Error: " + err.message);
+    }
 });
 
 
-//Modify/update the Slot
 
-router.patch('/slots/:id', async (req, res) => {
+//get Slots by DATE
+router.get('/getAllSlots', auth, async (req, res) => {
+
+    const { date } = req.body;
+
+    const bookingDate = moment(new Date(date));
+    const currentDate = moment(new Date());
+
+
+    let slots = ["MorningSlot", "AfternoonSlot", "EveningSlot"];
+    try {
+        // checking givendate should be greater then current date
+        if (bookingDate > currentDate) {
+            const bookings = await venueBookingModel.find({ bookingDate });
 
 
 
+            //filtering out available slots
+            let arr = [];
+            for (let slot of slots) {
+
+                let count = 0;
+                for (let booking of bookings) {
+                    console.log(booking)
+                    if (slot === booking.slot) {
+                        count++;
+                        break;
+                    }
+                }
+                if (count === 0) {
+                    arr.push(slot);
+                }
+            }
+            res.status(200).send({ message: "Available slots", data: arr });
+        } else {
+            res.status(406).send({ message: "Please enter valid date" });
+        }
+    } catch (e) {
+        res.status(500).send("Error: " + e.message);
+    }
+});
+
+
+//UPDATE BOOKED SLOT
+router.patch('/updateBookedslots/:id', auth, async (req, res) => {
     try {
 
-        const slot = await Venu.findByIdAndUpdate(req.params.id, req.body, {
+        const slot = await venueBookingModel.findByIdAndUpdate(req.params.id, req.body, {
             new: true,
             runValidators: true
         });
@@ -43,89 +108,23 @@ router.patch('/slots/:id', async (req, res) => {
 
 });
 
-//get All slots
-
-router.get('/slots', auth, async (req, res) => {
-
-    try {
-
-        const slots = await Slots.find({});
-
-        res.send(slots)
-    } catch (error) {
-        res.status(400).send(error)
-
-    }
-
-});
-
-
-//Delete the Slots
-router.delete('/slots/:id', auth, async (req, res) => {
+//User can DELETE the Booked Slot
+router.delete('/bookedslots/:id', auth, async (req, res) => {
 
     const id = req.params.id
 
     try {
 
-        const slot = await Slots.findById(id);
+        const slot = await venueBookingModel.findById(id);
+        //console.log(slot)
         slot.remove()
         await slot.save()
         res.send('Slot removed')
 
     } catch (error) {
-        res.status(404).send(error)
+        res.status(200).send('Deleted')
     }
-})
-
-//get Slots by ParticularDate
-
-router.get('/slots/date', auth, async (req, res) => {
-
-    try {
-        const slots = await Slots.findByDate(req.body.Date)
-
-        if (!slots) {
-            res.send('Slots are Not Available For this Date')
-        }
-        res.status(200).send(slots)
-    } catch (error) {
-        res.status(400).send(error)
-
-    }
-})
-
-//slots booking with Authentication
-
-router.post('/slots/slotbooking', auth, async (req, res) => {
-
-    try {
-
-        const Selectedslot = await Slots.findBySlotName(req.body.Name)
-        const user = await User.find({})
-
-        user.forEach(user => {
-            user.bookedSlot.push(Selectedslot.toPublicprofile());
-
-            user.save()
-        })
-
-
-        if (!Selectedslot.isSlotAvailable === false) {
-            Selectedslot.isSlotAvailable = false
-
-            res.status(200).send('Your Slot is Booked')
-        }
-
-
-
-
-    } catch (error) {
-        res.status(400).send('slot is not Available ')
-
-    }
-
 });
-
 
 
 
